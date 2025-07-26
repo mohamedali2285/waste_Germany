@@ -45,11 +45,10 @@ export default function CalendarScreen() {
 
   const handleBellPress = async () => {
     Alert.alert(
-      'Benachrichtigungen verwalten',
-      'Wählen Sie, für welche Müllarten Sie Erinnerungen erhalten möchten:',
+      'Erinnerungen verwalten',
+      'Gehen Sie zu Ihrem Profil, um Erinnerungen für verschiedene Müllarten zu aktivieren oder zu deaktivieren.',
       [
-        { text: 'Abbrechen', style: 'cancel' },
-        { text: 'Zu Profil', onPress: () => {/* Navigate to profile */} },
+        { text: 'OK', style: 'default' },
       ]
     );
   };
@@ -104,11 +103,11 @@ export default function CalendarScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>WasteWise Germany</Text>
+            <Text style={styles.title}>AbfallWise Deutschland</Text>
             <TouchableOpacity onPress={handleLocationRequest}>
               <Text style={styles.subtitle}>
                 {location?.address || 'Heidenheim an der Brenz, 89522'} 
-                {!hasPermission && ' (Tap to enable location)'}
+                {!hasPermission && ' (Tippen für Standort)'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -119,7 +118,7 @@ export default function CalendarScreen() {
 
         {/* Quick Overview Cards */}
         <View style={styles.quickOverview}>
-          <Text style={styles.sectionTitle}>Waste Collection Overview</Text>
+          <Text style={styles.sectionTitle}>Müllabfuhr Übersicht</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.wasteCardsContainer}>
             {wasteTypes.map((waste) => (
               <TouchableOpacity key={waste.id} style={[styles.wasteCard, { borderLeftColor: waste.color }]}>
@@ -133,14 +132,14 @@ export default function CalendarScreen() {
 
         {/* Upcoming Collections */}
         <View style={styles.upcomingSection}>
-          <Text style={styles.sectionTitle}>Upcoming Collections</Text>
+          <Text style={styles.sectionTitle}>Nächste Abholungen</Text>
           {upcomingCollections.map((collection, index) => (
             <TouchableOpacity key={index} style={styles.collectionItem}>
               <View style={[styles.colorIndicator, { backgroundColor: collection.color }]} />
               <View style={styles.collectionDetails}>
                 <Text style={styles.collectionType}>{collection.type}</Text>
                 <Text style={styles.collectionDate}>{collection.date}</Text>
-                <Text style={styles.collectionTime}>Collection starts at {collection.time}</Text>
+                <Text style={styles.collectionTime}>Abholung beginnt um {collection.time}</Text>
               </View>
               <TouchableOpacity 
                 style={styles.reminderButton}
@@ -164,7 +163,7 @@ export default function CalendarScreen() {
         <View style={styles.calendarSection}>
           <View style={styles.calendarHeader}>
             <Text style={styles.sectionTitle}>{monthName} {currentDate.getFullYear()}</Text>
-            <Text style={styles.currentDateInfo}>Today: {dayName}, {currentDay}.</Text>
+            <Text style={styles.currentDateInfo}>Heute: {dayName}, {currentDay}.</Text>
           </View>
           <View style={styles.calendarGrid}>
             {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate() }, (_, i) => i + 1).map((day) => (

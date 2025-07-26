@@ -14,11 +14,11 @@ import { useLocation } from '@/hooks/useLocation';
 import { mapsUtils } from '@/utils/maps';
 
 const facilityTypes = [
-  { id: 'all', name: 'All', color: '#666' },
-  { id: 'recycling', name: 'Recycling Centers', color: '#228B22' },
-  { id: 'glass', name: 'Glass Containers', color: '#90EE90' },
-  { id: 'clothing', name: 'Clothing', color: '#4169E1' },
-  { id: 'hazardous', name: 'Hazardous Waste', color: '#FF6347' },
+  { id: 'all', name: 'Alle', color: '#666' },
+  { id: 'recycling', name: 'Recycling-Zentren', color: '#228B22' },
+  { id: 'glass', name: 'Glascontainer', color: '#90EE90' },
+  { id: 'clothing', name: 'Altkleider', color: '#4169E1' },
+  { id: 'hazardous', name: 'Sondermüll', color: '#FF6347' },
 ];
 
 const nearbyFacilities = [
@@ -160,8 +160,8 @@ export default function MapScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>Recycling Facilities</Text>
-          <Text style={styles.subtitle}>Find collection points near you</Text>
+          <Text style={styles.title}>Recycling-Anlagen</Text>
+          <Text style={styles.subtitle}>Finden Sie Sammelstellen in Ihrer Nähe</Text>
         </View>
         <TouchableOpacity 
           style={styles.locationButton} 
@@ -202,17 +202,17 @@ export default function MapScreen() {
       {/* Map Placeholder */}
       <TouchableOpacity style={styles.mapPlaceholder} onPress={handleMapPress}>
         <MapPin size={48} color="#228B22" />
-        <Text style={styles.mapPlaceholderText}>Interactive Map View</Text>
+        <Text style={styles.mapPlaceholderText}>Interaktive Kartenansicht</Text>
         <Text style={styles.mapPlaceholderSubtext}>
-          Showing {filteredFacilities.length} facilities
+          Zeigt {filteredFacilities.length} Anlagen
           {location?.address ? ` near ${location.address.split(',')[0]}` : ' in Heidenheim an der Brenz'}
         </Text>
-        <Text style={styles.tapToOpenText}>Tap to open in Google Maps</Text>
+        <Text style={styles.tapToOpenText}>Tippen, um in Google Maps zu öffnen</Text>
       </TouchableOpacity>
 
       {/* Facilities List */}
       <ScrollView style={styles.facilitiesContainer}>
-        <Text style={styles.listTitle}>Nearby Facilities</Text>
+        <Text style={styles.listTitle}>Anlagen in der Nähe</Text>
         {filteredFacilities.map((facility) => (
           <TouchableOpacity key={facility.id} style={styles.facilityCard}>
             <View style={styles.facilityHeader}>
@@ -244,7 +244,7 @@ export default function MapScreen() {
             </View>
 
             <View style={styles.wasteTypesContainer}>
-              <Text style={styles.wasteTypesTitle}>Accepted waste:</Text>
+              <Text style={styles.wasteTypesTitle}>Angenommener Müll:</Text>
               <View style={styles.wasteTypesTags}>
                 {facility.acceptedWaste.slice(0, 3).map((waste, index) => (
                   <View key={index} style={styles.wasteTag}>
@@ -264,7 +264,7 @@ export default function MapScreen() {
               onPress={() => handleGetDirections(facility)}
             >
               <Navigation size={16} color="#228B22" />
-              <Text style={styles.directionsText}>Get Directions</Text>
+              <Text style={styles.directionsText}>Route anzeigen</Text>
             </TouchableOpacity>
           </TouchableOpacity>
         ))}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useCurrentDate } from './useCurrentDate';
+import { storage } from '@/utils/storage';
 
 export interface WasteCollection {
   id: string;
@@ -15,39 +16,44 @@ export function useWasteSchedule() {
   const [notifications, setNotifications] = useState({
     restmuell: true,
     biomuell: true,
-    papier: false,
+    papier: true,
     gelberSack: true,
-    altglas: false,
+    altglas: true,
   });
 
-  // Calculate next collection dates based on current date
-  const getNextCollectionDate = (baseDay: number, wasteType: string) => {
-    const today = currentDate.getDate();
-    const currentMonthDate = new Date(currentYear, currentMonth - 1, baseDay);
-    
-    // If the collection day has passed this month, show next month
-    if (baseDay < today) {
-      const nextMonth = new Date(currentYear, currentMonth, baseDay);
-      return {
-        date: nextMonth,
-        dayOfMonth: baseDay,
-        formattedDate: nextMonth.toLocaleDateString('de-DE', { 
-          weekday: 'short', 
-          day: '2-digit', 
-          month: 'short' 
-        })
-      };
-    } else {
-      return {
-        date: currentMonthDate,
-        dayOfMonth: baseDay,
-        formattedDate: currentMonthDate.toLocaleDateString('de-DE', { 
-          weekday: 'short', 
-          day: '2-digit', 
-          month: 'short' 
-        })
-      };
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const loadNotifications = async () => {
+    const saved = await storage.getNotifications();
+    if (saved) {
+      setNotifications(saved);
     }
+  };
+
+  // Calculate next collection date based on current date
+  const getNextCollectionDate = (baseDay: number) => {
+    const today = currentDate.getDate();
+    let targetDate: Date;
+    
+    if (baseDay >= today) {
+      // Collection day hasn't passed this month
+      targetDate = new Date(currentYear, currentMonth - 1, baseDay);
+    } else {
+      // Collection day has passed, show next month
+      targetDate = new Date(currentYear, currentMonth, baseDay);
+    }
+    
+    return {
+      date: targetDate,
+      dayOfMonth: baseDay,
+      formattedDate: targetDate.toLocaleDateString('de-DE', { 
+        weekday: 'short', 
+        day: '2-digit', 
+        month: 'short' 
+      })
+    };
   };
 
   const wasteTypes: WasteCollection[] = [
@@ -55,28 +61,28 @@ export function useWasteSchedule() {
       id: 'restmuell',
       name: 'Restmüll',
       color: '#2F4F4F',
-      ...getNextCollectionDate(27, 'restmuell'),
+      ...getNextCollectionDate(27),
       enabled: notifications.restmuell,
     },
     {
       id: 'biomuell',
       name: 'Biomüll',
       color: '#8FBC8F',
-      ...getNextCollectionDate(28, 'biomuell'),
+      ...getNextCollectionDate(28),
       enabled: notifications.biomuell,
     },
     {
       id: 'papier',
       name: 'Papier',
       color: '#4169E1',
-      ...getNextCollectionDate(30, 'papier'),
+      ...getNextCollectionDate(30),
       enabled: notifications.papier,
     },
     {
       id: 'gelberSack',
       name: 'Gelber Sack',
       color: '#FFD700',
-      ...getNextCollectionDate(31, 'gelberSack'),
+      ...getNextCollectionDate(31),
       enabled: notifications.gelberSack,
     },
     {
@@ -97,16 +103,28 @@ export function useWasteSchedule() {
   
   const upcomingCollections = enabledWasteTypes
     .filter(waste => waste.dayOfMonth > 0)
-    .map(waste => ({
-      type: waste.name,
-      date: new Date(currentYear, currentMonth - 1, waste.dayOfMonth).toLocaleDateString('de-DE', { 
-        weekday: 'long', 
-        day: '2-digit', 
-        month: 'long' 
-      }),
-      time: '07:00',
-      color: waste.color,
-    }));
+    .map(waste => {
+      const collectionDate = waste.dayOfMonth >= currentDate.getDate() 
+        ? new Date(currentYear, currentMonth - 1, waste.dayOfMonth)
+        : new Date(currentYear, currentMonth, waste.dayOfMonth);
+      
+      return {
+        type: waste.name,
+        date: collectionDate.toLocaleDateString('de-DE', { 
+          weekday: 'long', 
+          day: '2-digit', 
+          month: 'long' 
+        }),
+        time: '07:00',
+        color: waste.color,
+      };
+    })
+    .sort((a, b) => {
+      // Sort by actual date
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
+    });
 
   return {
     wasteTypes: enabledWasteTypes,
