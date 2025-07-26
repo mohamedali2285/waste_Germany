@@ -32,11 +32,14 @@ interface LanguageSelectorProps {
 }
 
 export default function LanguageSelector({ 
-  visible, 
+    await storage.saveSettings({ 
+      language: languageCode,
+      notificationTime: notificationTime 
+    });
   currentLanguage, 
   onClose, 
-  onSelect 
-}: LanguageSelectorProps) {
+      'Sprache geändert', 
+      `Sprache auf ${getLanguageName(languageCode)} eingestellt. Die App wird diese Sprache für zukünftige Updates verwenden.`,
   const handleSelect = (languageCode: string) => {
     onSelect(languageCode);
   };

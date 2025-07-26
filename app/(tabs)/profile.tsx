@@ -124,15 +124,15 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Profile & Settings</Text>
-        <Text style={styles.subtitle}>Customize your waste management preferences</Text>
+        <Text style={styles.title}>Profil & Einstellungen</Text>
+        <Text style={styles.subtitle}>Passen Sie Ihre Abfallmanagement-Einstellungen an</Text>
       </View>
 
       <ScrollView style={styles.scrollView}>
         {/* Address Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Your Address</Text>
+            <Text style={styles.sectionTitle}>Ihre Adresse</Text>
             <TouchableOpacity 
               style={styles.editButton}
               onPress={() => isEditing ? handleCancelEdit() : setIsEditing(true)}
@@ -142,7 +142,7 @@ export default function ProfileScreen() {
               ) : (
                 <>
                   <Edit3 size={16} color="#228B22" />
-                  <Text style={styles.editButtonText}>Edit</Text>
+                  <Text style={styles.editButtonText}>Bearbeiten</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -158,13 +158,13 @@ export default function ProfileScreen() {
                       style={[styles.input, styles.streetInput]}
                       value={tempAddress.street}
                       onChangeText={(text) => setTempAddress({...tempAddress, street: text})}
-                      placeholder="Street name"
+                      placeholder="Straßenname"
                     />
                     <TextInput
                       style={[styles.input, styles.houseInput]}
                       value={tempAddress.houseNumber}
                       onChangeText={(text) => setTempAddress({...tempAddress, houseNumber: text})}
-                      placeholder="No."
+                      placeholder="Nr."
                     />
                   </View>
                   <View style={styles.inputRow}>
@@ -172,22 +172,22 @@ export default function ProfileScreen() {
                       style={[styles.input, styles.postcodeInput]}
                       value={tempAddress.postcode}
                       onChangeText={(text) => setTempAddress({...tempAddress, postcode: text})}
-                      placeholder="Postcode"
+                      placeholder="Postleitzahl"
                     />
                     <TextInput
                       style={[styles.input, styles.cityInput]}
                       value={tempAddress.city}
                       onChangeText={(text) => setTempAddress({...tempAddress, city: text})}
-                      placeholder="City"
+                      placeholder="Stadt"
                     />
                   </View>
                   <TouchableOpacity style={styles.saveButton} onPress={handleSaveAddress}>
                     <Save size={16} color="#fff" />
-                    <Text style={styles.saveButtonText}>Save Address</Text>
+                    <Text style={styles.saveButtonText}>Adresse speichern</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.locationButton} onPress={handleUseCurrentLocation}>
                     <Locate size={16} color="#228B22" />
-                    <Text style={styles.locationButtonText}>Use Current Location</Text>
+                    <Text style={styles.locationButtonText}>Aktuellen Standort verwenden</Text>
                   </TouchableOpacity>
                 </>
               ) : (
@@ -206,9 +206,9 @@ export default function ProfileScreen() {
 
         {/* Notification Preferences */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Collection Reminders</Text>
+          <Text style={styles.sectionTitle}>Abholungs-Erinnerungen</Text>
           <Text style={styles.sectionDescription}>
-            Get notified before collection days
+            Lassen Sie sich vor Abholtagen benachrichtigen
           </Text>
 
           <View style={styles.notificationsList}>
@@ -281,14 +281,14 @@ export default function ProfileScreen() {
 
         {/* Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
+          <Text style={styles.sectionTitle}>Einstellungen</Text>
           
           <TouchableOpacity 
             style={styles.settingItem}
             onPress={() => setShowLanguageSelector(true)}
           >
             <Globe size={20} color="#666" />
-            <Text style={styles.settingText}>Language</Text>
+            <Text style={styles.settingText}>Sprache</Text>
             <Text style={styles.settingValue}>{getLanguageName(currentLanguage)}</Text>
             <ChevronRight size={16} color="#ccc" />
           </TouchableOpacity>
@@ -298,29 +298,29 @@ export default function ProfileScreen() {
             onPress={() => setShowTimeSelector(true)}
           >
             <Clock size={20} color="#666" />
-            <Text style={styles.settingText}>Notification Time</Text>
+            <Text style={styles.settingText}>Benachrichtigungszeit</Text>
             <Text style={styles.settingValue}>{notificationTime}</Text>
             <ChevronRight size={16} color="#ccc" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingItem}>
             <Settings size={20} color="#666" />
-            <Text style={styles.settingText}>App Preferences</Text>
+            <Text style={styles.settingText}>App-Einstellungen</Text>
             <ChevronRight size={16} color="#ccc" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingItem}>
             <HelpCircle size={20} color="#666" />
-            <Text style={styles.settingText}>Help & Support</Text>
+            <Text style={styles.settingText}>Hilfe & Support</Text>
             <ChevronRight size={16} color="#ccc" />
           </TouchableOpacity>
         </View>
 
         {/* App Info */}
         <View style={styles.section}>
-          <Text style={styles.appInfo}>WasteWise Germany v1.0.0</Text>
+          <Text style={styles.appInfo}>AbfallWise Deutschland v1.0.0</Text>
           <Text style={styles.appDescription}>
-            Helping make waste management in Heidenheim an der Brenz and all of Germany easier for everyone.
+            Hilft dabei, die Abfallwirtschaft in Heidenheim an der Brenz und ganz Deutschland für alle einfacher zu machen.
           </Text>
         </View>
       </ScrollView>
