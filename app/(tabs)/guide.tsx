@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput } from 'react-native';
 import { Search, ChevronRight } from 'lucide-react-native';
-import { WasteCategoryDetail } from '@/components/WasteCategoryDetail';
+import WasteCategoryDetail from '@/components/WasteCategoryDetail';
 
 const wasteCategories = [
   {
