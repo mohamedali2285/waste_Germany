@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 export interface CurrentDateInfo {
   currentDate: Date;
   currentDay: number;
-  currentMonth: number;
+  currentMonth: number; // 0-indexed (0 for January, 11 for December)
   currentYear: number;
   formattedDate: string;
   dayName: string;
@@ -30,7 +30,7 @@ export function useCurrentDate(): CurrentDateInfo {
   return {
     currentDate,
     currentDay: currentDate.getDate(),
-    currentMonth: currentDate.getMonth() + 1,
+    currentMonth: currentDate.getMonth(), // 0-indexed
     currentYear: currentDate.getFullYear(),
     formattedDate: currentDate.toLocaleDateString('de-DE'),
     dayName: dayNames[currentDate.getDay()],

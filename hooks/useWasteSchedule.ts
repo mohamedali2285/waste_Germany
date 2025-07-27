@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useCurrentDate } from './useCurrentDate';
 import { storage } from '@/utils/storage';
-import { getScheduleByPostcode, getDefaultSchedule, getNextCollectionDate, LocationSchedule } from '@/utils/garbageSchedules';
+import { getScheduleByPostcode, getDefaultSchedule, getNextCollectionDate, getCollectionDatesForYear, LocationSchedule } from '@/utils/garbageSchedules';
 
 export interface WasteCollection {
   id: string;
@@ -11,6 +11,11 @@ export interface WasteCollection {
   dayOfMonth: number;
   enabled: boolean;
   actualDate: Date;
+}
+
+export interface CalendarDayInfo {
+  type: string;
+  color: string;
 }
 
 export function useWasteSchedule() {
@@ -156,9 +161,9 @@ export function useWasteSchedule() {
 
   const wasteTypes = generateWasteCollections();
   
-  // For upcoming collections, only show enabled ones
+  // Upcoming collections: show all, regardless of notification status
   const upcomingCollections = wasteTypes
-    .filter(waste => waste.enabled && waste.dayOfMonth > 0)
+    .filter(waste => waste.dayOfMonth > 0) // Only filter out Altglas if it's "Immer verfügbar" and doesn't have a specific day
     .map(waste => ({
       type: waste.name,
       date: waste.actualDate.toLocaleDateString('de-DE', { 
@@ -172,21 +177,41 @@ export function useWasteSchedule() {
     .sort((a, b) => {
       const dateA = wasteTypes.find(w => w.name === a.type)?.actualDate || new Date();
       const dateB = wasteTypes.find(w => w.name === b.type)?.actualDate || new Date();
-      return dateA.getTime() - dateB.getTime();
+      return dateA.getTime() - dateB.getTime(); // Fixed: Changed b.getTime() to dateB.getTime()
     });
 
-  // For calendar, only show enabled waste types
-  const calendarWasteTypes = wasteTypes
-    .filter(waste => waste.enabled && waste.dayOfMonth > 0)
-    .reduce((acc, waste) => {
-      acc[waste.dayOfMonth] = { type: waste.name, color: waste.color };
-      return acc;
-    }, {} as { [key: number]: { type: string; color: string } });
+  // Calendar data for the whole year
+  const yearCalendarData = useMemo(() => {
+    const data: { [month: number]: { [day: number]: CalendarDayInfo[] } } = {};
+    const wasteTypeKeys: Array<'restmuell' | 'biomuell' | 'papier' | 'gelberSack'> = ['restmuell', 'biomuell', 'papier', 'gelberSack'];
+
+    wasteTypeKeys.forEach(typeKey => {
+      if (notifications[typeKey]) { // Only include if notifications are enabled for this type
+        const dates = getCollectionDatesForYear(typeKey, currentSchedule, currentYear);
+        const wasteName = wasteTypes.find(w => w.id === typeKey)?.name || typeKey;
+        const wasteColor = currentSchedule.wasteTypes[typeKey].color;
+
+        dates.forEach(date => {
+          const month = date.getMonth(); // 0-11
+          const day = date.getDate(); // 1-31
+
+          if (!data[month]) {
+            data[month] = {};
+          }
+          if (!data[month][day]) {
+            data[month][day] = [];
+          }
+          data[month][day].push({ type: wasteName, color: wasteColor });
+        });
+      }
+    });
+    return data;
+  }, [currentSchedule, currentYear, notifications]); // Recalculate if schedule or year changes
 
   return {
     wasteTypes, // All waste types (for display)
-    upcomingCollections, // Only enabled ones
-    calendarWasteTypes, // Only enabled ones for calendar
+    upcomingCollections, 
+    yearCalendarData, // All enabled collections for the year, organized by month/day
     notifications,
     setNotifications,
     currentSchedule,

@@ -8,7 +8,7 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import { Bell, Calendar as CalendarIcon, MapPin, Navigation } from 'lucide-react-native';
+import { Bell, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useCurrentDate } from '@/hooks/useCurrentDate';
 import { useWasteSchedule } from '@/hooks/useWasteSchedule';
 import { useLocation } from '@/hooks/useLocation';
@@ -16,12 +16,11 @@ import { storage } from '@/utils/storage';
 import { getScheduleByPostcode } from '@/utils/garbageSchedules';
 
 export default function CalendarScreen() {
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const { currentDate, currentDay, monthName, dayName } = useCurrentDate();
+  const { currentDate, currentDay, currentMonth, currentYear, dayName } = useCurrentDate();
   const { 
     wasteTypes, 
     upcomingCollections, 
-    calendarWasteTypes, 
+    yearCalendarData, 
     notifications, 
     setNotifications,
     userAddress,
@@ -29,14 +28,17 @@ export default function CalendarScreen() {
   } = useWasteSchedule();
   const { location, requestLocation, hasPermission } = useLocation();
 
+  const [visibleMonthIndex, setVisibleMonthIndex] = useState(currentMonth);
+  const [visibleYear, setVisibleYear] = useState(currentYear);
+
   const handleLocationRequest = async () => {
     if (!hasPermission) {
       Alert.alert(
-        'Location Permission',
-        'This app needs location access to show nearby facilities and provide accurate collection schedules.',
+        'Standortberechtigung',
+        'Diese App benötigt Standortzugriff, um nahegelegene Einrichtungen anzuzeigen und genaue Abholpläne bereitzustellen.',
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Allow', onPress: requestLocation },
+          { text: 'Abbrechen', style: 'cancel' },
+          { text: 'Zulassen', onPress: requestLocation },
         ]
       );
     } else {
@@ -66,9 +68,29 @@ export default function CalendarScreen() {
                 'Standort aktualisiert',
                 `Abfallplan für ${schedule.city} wurde geladen.`
               );
+            } else {
+              Alert.alert(
+                'Standort nicht gefunden',
+                `Für die Postleitzahl ${newAddress.postcode} wurde kein Abfallplan gefunden. Es wird der Standardplan verwendet.`
+              );
             }
+          } else {
+            Alert.alert(
+              'Postleitzahl nicht erkannt',
+              'Die Postleitzahl konnte aus Ihrem Standort nicht extrahiert werden.'
+            );
           }
+        } else {
+          Alert.alert(
+            'Standortdetails unvollständig',
+            'Die Standortinformationen sind nicht detailliert genug, um eine Adresse zu bestimmen.'
+          );
         }
+      } else {
+        Alert.alert(
+          'Standort nicht verfügbar',
+          'Ihr Standort konnte nicht abgerufen werden. Bitte versuchen Sie es erneut.'
+        );
       }
     }
   };
@@ -89,6 +111,7 @@ export default function CalendarScreen() {
       'Biomüll': 'biomuell',
       'Papier': 'papier',
       'Gelber Sack': 'gelberSack',
+      'Altglas': 'altglas',
     };
     
     const notificationKey = typeMap[wasteType];
@@ -107,24 +130,56 @@ export default function CalendarScreen() {
     }
   };
 
-  const getCalendarDayStyle = (day: number) => {
-    const wasteInfo = calendarWasteTypes[day];
-    if (day === currentDay) {
+  const getCalendarDayStyle = (day: number, month: number) => {
+    const wasteInfo = yearCalendarData[month]?.[day];
+    const isCurrentDay = day === currentDay && month === currentMonth && visibleYear === currentYear;
+
+    if (isCurrentDay) {
       return styles.currentDay;
-    } else if (wasteInfo) {
-      return [styles.collectionDay, { backgroundColor: wasteInfo.color + '40', borderColor: wasteInfo.color }];
+    } else if (wasteInfo && wasteInfo.length > 0) {
+      // If multiple collections on one day, use the first color or a mixed color
+      const firstColor = wasteInfo[0].color;
+      return [styles.collectionDay, { backgroundColor: firstColor + '40', borderColor: firstColor }];
     }
     return styles.calendarDay;
   };
 
-  const getCalendarDayTextStyle = (day: number) => {
-    const wasteInfo = calendarWasteTypes[day];
-    if (day === currentDay) {
+  const getCalendarDayTextStyle = (day: number, month: number) => {
+    const wasteInfo = yearCalendarData[month]?.[day];
+    const isCurrentDay = day === currentDay && month === currentMonth && visibleYear === currentYear;
+
+    if (isCurrentDay) {
       return styles.currentDayText;
-    } else if (wasteInfo) {
-      return [styles.collectionDayText, { color: wasteInfo.color }];
+    } else if (wasteInfo && wasteInfo.length > 0) {
+      const firstColor = wasteInfo[0].color;
+      return [styles.collectionDayText, { color: firstColor }];
     }
     return styles.calendarDayText;
+  };
+
+  const getMonthName = (monthIndex: number) => {
+    const date = new Date(visibleYear, monthIndex, 1);
+    return date.toLocaleDateString('de-DE', { month: 'long' });
+  };
+
+  const handlePrevMonth = () => {
+    setVisibleMonthIndex((prevIndex) => {
+      if (prevIndex === 0) {
+        setVisibleYear((prevYear) => prevYear - 1);
+        return 11; // December
+      }
+      return prevIndex - 1;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setVisibleMonthIndex((prevIndex) => {
+      if (prevIndex === 11) {
+        setVisibleYear((prevYear) => prevYear + 1);
+        return 0; // January
+      }
+      return prevIndex + 1;
+    });
   };
 
   return (
@@ -163,50 +218,66 @@ export default function CalendarScreen() {
         {/* Upcoming Collections */}
         <View style={styles.upcomingSection}>
           <Text style={styles.sectionTitle}>Nächste Abholungen</Text>
-          {upcomingCollections.map((collection, index) => (
-            <TouchableOpacity key={index} style={styles.collectionItem}>
-              <View style={[styles.colorIndicator, { backgroundColor: collection.color }]} />
-              <View style={styles.collectionDetails}>
-                <Text style={styles.collectionType}>{collection.type}</Text>
-                <Text style={styles.collectionDate}>{collection.date}</Text>
-                <Text style={styles.collectionTime}>Abholung beginnt um {collection.time}</Text>
-              </View>
-              <TouchableOpacity 
-                style={styles.reminderButton}
-                onPress={() => handleReminderPress(collection.type)}
-              >
-                <Bell 
-                  size={16} 
-                  color={notifications[Object.keys(notifications).find(key => 
-                    collection.type === (key === 'restmuell' ? 'Restmüll' : 
-                                       key === 'biomuell' ? 'Biomüll' : 
-                                       key === 'papier' ? 'Papier' : 
-                                       key === 'gelberSack' ? 'Gelber Sack' : 'Altglas')
-                  ) || 'restmuell'] ? '#228B22' : '#ccc'} 
-                />
+          {upcomingCollections.map((collection, index) => {
+            const typeMap: { [key: string]: keyof typeof notifications } = {
+              'Restmüll': 'restmuell',
+              'Biomüll': 'biomuell',
+              'Papier': 'papier',
+              'Gelber Sack': 'gelberSack',
+              'Altglas': 'altglas',
+            };
+            const notificationKey = typeMap[collection.type];
+            const isNotificationActive = notificationKey ? notifications[notificationKey] : false;
+
+            return (
+              <TouchableOpacity key={index} style={styles.collectionItem}>
+                <View style={[styles.colorIndicator, { backgroundColor: collection.color }]} />
+                <View style={styles.collectionDetails}>
+                  <Text style={styles.collectionType}>{collection.type}</Text>
+                  <Text style={styles.collectionDate}>{collection.date}</Text>
+                  <Text style={styles.collectionTime}>Abholung beginnt um {collection.time}</Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.reminderButton}
+                  onPress={() => handleReminderPress(collection.type)}
+                >
+                  <Bell 
+                    size={16} 
+                    color={isNotificationActive ? '#228B22' : '#ccc'} 
+                  />
+                </TouchableOpacity>
               </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
+            );
+          })}
         </View>
 
-        {/* Calendar View */}
+        {/* Full Year Calendar View */}
         <View style={styles.calendarSection}>
-          <View style={styles.calendarHeader}>
-            <Text style={styles.sectionTitle}>{monthName} {currentDate.getFullYear()}</Text>
-            <Text style={styles.currentDateInfo}>Heute: {dayName}, {currentDay}.</Text>
-          </View>
-          <View style={styles.calendarGrid}>
-            {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate() }, (_, i) => i + 1).map((day) => (
-              <TouchableOpacity
-                key={day}
-                style={getCalendarDayStyle(day)}
-                onPress={() => setSelectedDate(day.toString())}
-              >
-                <Text style={getCalendarDayTextStyle(day)}>
-                  {day}
-                </Text>
+          <Text style={styles.sectionTitle}>Abfallkalender</Text>
+          <Text style={styles.currentDateInfo}>Heute: {dayName}, {currentDay}. {getMonthName(currentMonth)}</Text>
+          
+          <View style={styles.monthContainer}>
+            <View style={styles.calendarNavigation}>
+              <TouchableOpacity onPress={handlePrevMonth} style={styles.navButton}>
+                <ChevronLeft size={24} color="#333" />
               </TouchableOpacity>
-            ))}
+              <Text style={styles.monthTitle}>{getMonthName(visibleMonthIndex)} {visibleYear}</Text>
+              <TouchableOpacity onPress={handleNextMonth} style={styles.navButton}>
+                <ChevronRight size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.calendarGrid}>
+              {Array.from({ length: new Date(visibleYear, visibleMonthIndex + 1, 0).getDate() }, (_, i) => i + 1).map((day) => (
+                <TouchableOpacity
+                  key={day}
+                  style={getCalendarDayStyle(day, visibleMonthIndex)}
+                >
+                  <Text style={getCalendarDayTextStyle(day, visibleMonthIndex)}>
+                    {day}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -352,6 +423,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#228B22',
     fontWeight: '500',
+    marginBottom: 15,
+  },
+  monthContainer: {
+    marginBottom: 20,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  calendarNavigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  navButton: {
+    padding: 10,
+  },
+  monthTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
   },
   calendarGrid: {
     flexDirection: 'row',
@@ -359,13 +457,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   calendarDay: {
-    width: '13%',
+    width: '13%', // Approx 7 days per row
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: '#f0f0f0',
   },
   currentDay: {
     backgroundColor: '#228B22',
