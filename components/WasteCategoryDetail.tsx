@@ -15,9 +15,11 @@ interface WasteCategory {
   name: string;
   color: string;
   description: string;
-  examples: string[];
-  tips?: string[];
-  forbidden?: string[];
+  details: {
+    belongs: string[];
+    tips: string;
+    forbidden: string[];
+  };
 }
 
 interface WasteCategoryDetailProps {
@@ -54,7 +56,7 @@ export default function WasteCategoryDetail({ visible, category, onClose }: Wast
           {/* What belongs here */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>✅ Was gehört hinein:</Text>
-            {category.examples.map((example, index) => (
+            {category.details.belongs.map((example, index) => (
               <View key={index} style={styles.listItem}>
                 <Text style={styles.listItemText}>• {example}</Text>
               </View>
@@ -62,22 +64,20 @@ export default function WasteCategoryDetail({ visible, category, onClose }: Wast
           </View>
 
           {/* Tips */}
-          {category.tips && (
+          {category.details.tips && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>💡 Tipps:</Text>
-              {category.tips.map((tip, index) => (
-                <View key={index} style={styles.tipItem}>
-                  <Text style={styles.tipText}>{tip}</Text>
-                </View>
-              ))}
+              <View style={styles.tipItem}>
+                <Text style={styles.tipText}>{category.details.tips}</Text>
+              </View>
             </View>
           )}
 
           {/* What doesn't belong */}
-          {category.forbidden && (
+          {category.details.forbidden && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>❌ Gehört NICHT hinein:</Text>
-              {category.forbidden.map((item, index) => (
+              {category.details.forbidden.map((item, index) => (
                 <View key={index} style={styles.forbiddenItem}>
                   <Text style={styles.forbiddenText}>• {item}</Text>
                 </View>
