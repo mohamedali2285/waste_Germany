@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -29,7 +29,11 @@ export default function CalendarScreen() {
   const { location, requestLocation, hasPermission } = useLocation();
 
   const [visibleMonthIndex, setVisibleMonthIndex] = useState(currentMonth);
-  const [visibleYear, setVisibleYear] = useState(currentYear);
+
+  // Effect to reset visibleMonthIndex when userAddress.postcode changes
+  useEffect(() => {
+    setVisibleMonthIndex(currentMonth);
+  }, [userAddress.postcode, currentMonth]);
 
   const handleLocationRequest = async () => {
     if (!hasPermission) {
@@ -132,7 +136,7 @@ export default function CalendarScreen() {
 
   const getCalendarDayStyle = (day: number, month: number) => {
     const wasteInfo = yearCalendarData[month]?.[day];
-    const isCurrentDay = day === currentDay && month === currentMonth && visibleYear === currentYear;
+    const isCurrentDay = day === currentDay && month === currentMonth && currentYear === new Date().getFullYear();
 
     if (isCurrentDay) {
       return styles.currentDay;
@@ -146,7 +150,7 @@ export default function CalendarScreen() {
 
   const getCalendarDayTextStyle = (day: number, month: number) => {
     const wasteInfo = yearCalendarData[month]?.[day];
-    const isCurrentDay = day === currentDay && month === currentMonth && visibleYear === currentYear;
+    const isCurrentDay = day === currentDay && month === currentMonth && currentYear === new Date().getFullYear();
 
     if (isCurrentDay) {
       return styles.currentDayText;
@@ -158,28 +162,16 @@ export default function CalendarScreen() {
   };
 
   const getMonthName = (monthIndex: number) => {
-    const date = new Date(visibleYear, monthIndex, 1);
+    const date = new Date(currentYear, monthIndex, 1);
     return date.toLocaleDateString('de-DE', { month: 'long' });
   };
 
-  const handlePrevMonth = () => {
-    setVisibleMonthIndex((prevIndex) => {
-      if (prevIndex === 0) {
-        setVisibleYear((prevYear) => prevYear - 1);
-        return 11; // December
-      }
-      return prevIndex - 1;
-    });
+  const handlePreviousMonth = () => {
+    setVisibleMonthIndex((prevIndex) => (prevIndex === 0 ? 11 : prevIndex - 1));
   };
 
   const handleNextMonth = () => {
-    setVisibleMonthIndex((prevIndex) => {
-      if (prevIndex === 11) {
-        setVisibleYear((prevYear) => prevYear + 1);
-        return 0; // January
-      }
-      return prevIndex + 1;
-    });
+    setVisibleMonthIndex((prevIndex) => (prevIndex === 11 ? 0 : prevIndex + 1));
   };
 
   return (
@@ -253,21 +245,22 @@ export default function CalendarScreen() {
 
         {/* Full Year Calendar View */}
         <View style={styles.calendarSection}>
-          <Text style={styles.sectionTitle}>Abfallkalender</Text>
+          <Text style={styles.sectionTitle}>Abfallkalender {currentYear}</Text>
           <Text style={styles.currentDateInfo}>Heute: {dayName}, {currentDay}. {getMonthName(currentMonth)}</Text>
           
+          <View style={styles.monthNavigation}>
+            <TouchableOpacity onPress={handlePreviousMonth} style={styles.navButton}>
+              <ChevronLeft size={24} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.monthTitle}>{getMonthName(visibleMonthIndex)}</Text>
+            <TouchableOpacity onPress={handleNextMonth} style={styles.navButton}>
+              <ChevronRight size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.monthContainer}>
-            <View style={styles.calendarNavigation}>
-              <TouchableOpacity onPress={handlePrevMonth} style={styles.navButton}>
-                <ChevronLeft size={24} color="#333" />
-              </TouchableOpacity>
-              <Text style={styles.monthTitle}>{getMonthName(visibleMonthIndex)} {visibleYear}</Text>
-              <TouchableOpacity onPress={handleNextMonth} style={styles.navButton}>
-                <ChevronRight size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
             <View style={styles.calendarGrid}>
-              {Array.from({ length: new Date(visibleYear, visibleMonthIndex + 1, 0).getDate() }, (_, i) => i + 1).map((day) => (
+              {Array.from({ length: new Date(currentYear, visibleMonthIndex + 1, 0).getDate() }, (_, i) => i + 1).map((day) => (
                 <TouchableOpacity
                   key={day}
                   style={getCalendarDayStyle(day, visibleMonthIndex)}
@@ -425,6 +418,24 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 15,
   },
+  monthNavigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  navButton: {
+    padding: 10,
+  },
   monthContainer: {
     marginBottom: 20,
     backgroundColor: '#fff',
@@ -435,15 +446,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  calendarNavigation: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  navButton: {
-    padding: 10,
   },
   monthTitle: {
     fontSize: 18,
