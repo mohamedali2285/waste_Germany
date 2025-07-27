@@ -29,14 +29,6 @@ export default function CalendarScreen() {
   } = useWasteSchedule();
   const { location, requestLocation, hasPermission } = useLocation();
 
-  // Create calendar mapping from enabled waste types
-  const calendarWasteTypes = wasteTypes.reduce((acc, waste) => {
-    if (waste.dayOfMonth > 0) {
-      acc[waste.dayOfMonth] = { type: waste.name, color: waste.color };
-    }
-    return acc;
-  }, {} as { [key: number]: { type: string; color: string } });
-
   const handleLocationRequest = async () => {
     if (!hasPermission) {
       Alert.alert(
