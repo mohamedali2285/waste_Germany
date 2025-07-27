@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCurrentDate } from './useCurrentDate';
 import { storage } from '@/utils/storage';
+import { getScheduleByPostcode, getDefaultSchedule, getNextCollectionDate, LocationSchedule } from '@/utils/garbageSchedules';
 
 export interface WasteCollection {
   id: string;
@@ -9,6 +10,7 @@ export interface WasteCollection {
   nextDate: string;
   dayOfMonth: number;
   enabled: boolean;
+  actualDate: Date;
 }
 
 export function useWasteSchedule() {
@@ -20,10 +22,23 @@ export function useWasteSchedule() {
     gelberSack: true,
     altglas: true,
   });
+  const [currentSchedule, setCurrentSchedule] = useState<LocationSchedule>(getDefaultSchedule());
+  const [userAddress, setUserAddress] = useState({
+    street: 'Grabenstraße',
+    houseNumber: '15',
+    postcode: '89522',
+    city: 'Heidenheim an der Brenz',
+  });
 
   useEffect(() => {
     loadNotifications();
+    loadAddress();
   }, []);
+
+  useEffect(() => {
+    // Update schedule when address changes
+    updateScheduleForLocation(userAddress.postcode);
+  }, [userAddress.postcode]);
 
   const loadNotifications = async () => {
     const saved = await storage.getNotifications();
@@ -32,104 +47,150 @@ export function useWasteSchedule() {
     }
   };
 
-  // Calculate next collection date based on current date
-  const getNextCollectionDate = (baseDay: number) => {
-    const today = currentDate.getDate();
-    let targetDate: Date;
-    
-    if (baseDay >= today) {
-      // Collection day hasn't passed this month
-      targetDate = new Date(currentYear, currentMonth - 1, baseDay);
-    } else {
-      // Collection day has passed, show next month
-      targetDate = new Date(currentYear, currentMonth, baseDay);
+  const loadAddress = async () => {
+    const saved = await storage.getAddress();
+    if (saved) {
+      setUserAddress(saved);
     }
-    
-    return {
-      date: targetDate,
-      dayOfMonth: baseDay,
-      formattedDate: targetDate.toLocaleDateString('de-DE', { 
+  };
+
+  const updateScheduleForLocation = (postcode: string) => {
+    const schedule = getScheduleByPostcode(postcode);
+    if (schedule) {
+      setCurrentSchedule(schedule);
+    } else {
+      // Use default schedule if postcode not found
+      setCurrentSchedule(getDefaultSchedule());
+    }
+  };
+
+  const updateAddressAndSchedule = async (newAddress: any) => {
+    setUserAddress(newAddress);
+    await storage.saveAddress(newAddress);
+    updateScheduleForLocation(newAddress.postcode);
+  };
+
+  // Generate waste collections based on current schedule
+  const generateWasteCollections = (): WasteCollection[] => {
+    const collections: WasteCollection[] = [];
+
+    // Restmüll
+    const restmuellDate = getNextCollectionDate('restmuell', currentSchedule, currentDate);
+    collections.push({
+      id: 'restmuell',
+      name: 'Restmüll',
+      color: currentSchedule.wasteTypes.restmuell.color,
+      nextDate: restmuellDate.toLocaleDateString('de-DE', { 
         weekday: 'short', 
         day: '2-digit', 
         month: 'short' 
-      })
-    };
-  };
-
-  const wasteTypes: WasteCollection[] = [
-    {
-      id: 'restmuell',
-      name: 'Restmüll',
-      color: '#2F4F4F',
-      ...getNextCollectionDate(27),
+      }),
+      dayOfMonth: restmuellDate.getDate(),
       enabled: notifications.restmuell,
-    },
-    {
+      actualDate: restmuellDate,
+    });
+
+    // Biomüll
+    const biomuellDate = getNextCollectionDate('biomuell', currentSchedule, currentDate);
+    collections.push({
       id: 'biomuell',
       name: 'Biomüll',
-      color: '#8FBC8F',
-      ...getNextCollectionDate(28),
+      color: currentSchedule.wasteTypes.biomuell.color,
+      nextDate: biomuellDate.toLocaleDateString('de-DE', { 
+        weekday: 'short', 
+        day: '2-digit', 
+        month: 'short' 
+      }),
+      dayOfMonth: biomuellDate.getDate(),
       enabled: notifications.biomuell,
-    },
-    {
+      actualDate: biomuellDate,
+    });
+
+    // Papier
+    const papierDate = getNextCollectionDate('papier', currentSchedule, currentDate);
+    collections.push({
       id: 'papier',
       name: 'Papier',
-      color: '#4169E1',
-      ...getNextCollectionDate(30),
+      color: currentSchedule.wasteTypes.papier.color,
+      nextDate: papierDate.toLocaleDateString('de-DE', { 
+        weekday: 'short', 
+        day: '2-digit', 
+        month: 'short' 
+      }),
+      dayOfMonth: papierDate.getDate(),
       enabled: notifications.papier,
-    },
-    {
+      actualDate: papierDate,
+    });
+
+    // Gelber Sack
+    const gelberSackDate = getNextCollectionDate('gelberSack', currentSchedule, currentDate);
+    collections.push({
       id: 'gelberSack',
       name: 'Gelber Sack',
-      color: '#FFD700',
-      ...getNextCollectionDate(31),
+      color: currentSchedule.wasteTypes.gelberSack.color,
+      nextDate: gelberSackDate.toLocaleDateString('de-DE', { 
+        weekday: 'short', 
+        day: '2-digit', 
+        month: 'short' 
+      }),
+      dayOfMonth: gelberSackDate.getDate(),
       enabled: notifications.gelberSack,
-    },
-    {
-      id: 'altglas',
-      name: 'Altglas',
-      color: '#90EE90',
-      nextDate: 'Immer verfügbar',
-      dayOfMonth: 0,
-      formattedDate: 'Immer verfügbar',
-      enabled: notifications.altglas,
-    },
-  ].map(waste => ({
-    ...waste,
-    nextDate: waste.formattedDate
-  }));
+      actualDate: gelberSackDate,
+    });
 
-  const enabledWasteTypes = wasteTypes.filter(waste => waste.enabled);
+    // Altglas (always available)
+    if (currentSchedule.wasteTypes.altglas.available) {
+      collections.push({
+        id: 'altglas',
+        name: 'Altglas',
+        color: currentSchedule.wasteTypes.altglas.color,
+        nextDate: 'Immer verfügbar',
+        dayOfMonth: 0,
+        enabled: notifications.altglas,
+        actualDate: new Date(),
+      });
+    }
+
+    return collections;
+  };
+
+  const wasteTypes = generateWasteCollections();
   
-  const upcomingCollections = enabledWasteTypes
-    .filter(waste => waste.dayOfMonth > 0)
-    .map(waste => {
-      const collectionDate = waste.dayOfMonth >= currentDate.getDate() 
-        ? new Date(currentYear, currentMonth - 1, waste.dayOfMonth)
-        : new Date(currentYear, currentMonth, waste.dayOfMonth);
-      
-      return {
-        type: waste.name,
-        date: collectionDate.toLocaleDateString('de-DE', { 
-          weekday: 'long', 
-          day: '2-digit', 
-          month: 'long' 
-        }),
-        time: '07:00',
-        color: waste.color,
-      };
-    })
+  // For upcoming collections, only show enabled ones
+  const upcomingCollections = wasteTypes
+    .filter(waste => waste.enabled && waste.dayOfMonth > 0)
+    .map(waste => ({
+      type: waste.name,
+      date: waste.actualDate.toLocaleDateString('de-DE', { 
+        weekday: 'long', 
+        day: '2-digit', 
+        month: 'long' 
+      }),
+      time: '07:00',
+      color: waste.color,
+    }))
     .sort((a, b) => {
-      // Sort by actual date
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
+      const dateA = wasteTypes.find(w => w.name === a.type)?.actualDate || new Date();
+      const dateB = wasteTypes.find(w => w.name === b.type)?.actualDate || new Date();
       return dateA.getTime() - dateB.getTime();
     });
 
+  // For calendar, only show enabled waste types
+  const calendarWasteTypes = wasteTypes
+    .filter(waste => waste.enabled && waste.dayOfMonth > 0)
+    .reduce((acc, waste) => {
+      acc[waste.dayOfMonth] = { type: waste.name, color: waste.color };
+      return acc;
+    }, {} as { [key: number]: { type: string; color: string } });
+
   return {
-    wasteTypes: enabledWasteTypes,
-    upcomingCollections,
+    wasteTypes, // All waste types (for display)
+    upcomingCollections, // Only enabled ones
+    calendarWasteTypes, // Only enabled ones for calendar
     notifications,
     setNotifications,
+    currentSchedule,
+    userAddress,
+    updateAddressAndSchedule,
   };
 }

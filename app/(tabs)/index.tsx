@@ -13,11 +13,20 @@ import { useCurrentDate } from '@/hooks/useCurrentDate';
 import { useWasteSchedule } from '@/hooks/useWasteSchedule';
 import { useLocation } from '@/hooks/useLocation';
 import { storage } from '@/utils/storage';
+import { getScheduleByPostcode } from '@/utils/garbageSchedules';
 
 export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const { currentDate, currentDay, monthName, dayName } = useCurrentDate();
-  const { wasteTypes, upcomingCollections, notifications, setNotifications } = useWasteSchedule();
+  const { 
+    wasteTypes, 
+    upcomingCollections, 
+    calendarWasteTypes, 
+    notifications, 
+    setNotifications,
+    userAddress,
+    updateAddressAndSchedule 
+  } = useWasteSchedule();
   const { location, requestLocation, hasPermission } = useLocation();
 
   // Create calendar mapping from enabled waste types
@@ -40,6 +49,35 @@ export default function CalendarScreen() {
       );
     } else {
       await requestLocation();
+      
+      // Update address and schedule based on location
+      if (location?.address) {
+        const parts = location.address.split(',');
+        if (parts.length >= 2) {
+          const streetPart = parts[0].trim();
+          const cityPart = parts[1].trim();
+          const postcodeMatch = cityPart.match(/^\d{5}/);
+          
+          if (postcodeMatch) {
+            const newAddress = {
+              street: streetPart.replace(/\d+$/, '').trim(),
+              houseNumber: streetPart.match(/\d+$/) ? streetPart.match(/\d+$/)![0] : '',
+              postcode: postcodeMatch[0],
+              city: cityPart.replace(/^\d{5}\s*/, ''),
+            };
+            
+            // Check if we have a schedule for this postcode
+            const schedule = getScheduleByPostcode(newAddress.postcode);
+            if (schedule) {
+              await updateAddressAndSchedule(newAddress);
+              Alert.alert(
+                'Standort aktualisiert',
+                `Abfallplan für ${schedule.city} wurde geladen.`
+              );
+            }
+          }
+        }
+      }
     }
   };
 
@@ -78,7 +116,7 @@ export default function CalendarScreen() {
   };
 
   const getCalendarDayStyle = (day: number) => {
-    const wasteInfo = calendarWasteTypes[day as keyof typeof calendarWasteTypes];
+    const wasteInfo = calendarWasteTypes[day];
     if (day === currentDay) {
       return styles.currentDay;
     } else if (wasteInfo) {
@@ -88,7 +126,7 @@ export default function CalendarScreen() {
   };
 
   const getCalendarDayTextStyle = (day: number) => {
-    const wasteInfo = calendarWasteTypes[day as keyof typeof calendarWasteTypes];
+    const wasteInfo = calendarWasteTypes[day];
     if (day === currentDay) {
       return styles.currentDayText;
     } else if (wasteInfo) {
@@ -106,7 +144,7 @@ export default function CalendarScreen() {
             <Text style={styles.title}>AbfallWise Deutschland</Text>
             <TouchableOpacity onPress={handleLocationRequest}>
               <Text style={styles.subtitle}>
-                {location?.address || 'Heidenheim an der Brenz, 89522'} 
+                {userAddress.city}, {userAddress.postcode}
                 {!hasPermission && ' (Tippen für Standort)'}
               </Text>
             </TouchableOpacity>

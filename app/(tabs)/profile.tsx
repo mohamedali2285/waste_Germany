@@ -15,6 +15,7 @@ import { useCurrentDate } from '@/hooks/useCurrentDate';
 import { useWasteSchedule } from '@/hooks/useWasteSchedule';
 import { useLocation } from '@/hooks/useLocation';
 import { storage } from '@/utils/storage';
+import { getScheduleByPostcode } from '@/utils/garbageSchedules';
 import LanguageSelector from '@/components/LanguageSelector';
 import TimeSelector from '@/components/TimeSelector';
 
@@ -26,27 +27,42 @@ export default function ProfileScreen() {
   const [notificationTime, setNotificationTime] = useState('18:00');
   
   const { currentDate } = useCurrentDate();
-  const { notifications, setNotifications } = useWasteSchedule();
+  const { 
+    notifications, 
+    setNotifications, 
+    userAddress, 
+    updateAddressAndSchedule,
+    currentSchedule 
+  } = useWasteSchedule();
   const { location, requestLocation, hasPermission } = useLocation();
   
-  const [address, setAddress] = useState({
-    street: 'Grabenstraße',
-    houseNumber: '15',
-    postcode: '89522',
-    city: 'Heidenheim an der Brenz',
-  });
+  const [tempAddress, setTempAddress] = useState(userAddress);
 
-  const [tempAddress, setTempAddress] = useState(address);
+  useEffect(() => {
+    setTempAddress(userAddress);
+  }, [userAddress]);
 
   const handleSaveAddress = async () => {
-    setAddress(tempAddress);
-    await storage.saveAddress(tempAddress);
+    await updateAddressAndSchedule(tempAddress);
     setIsEditing(false);
-    Alert.alert('Success', 'Address saved successfully!');
+    
+    // Check if we have a schedule for this postcode
+    const schedule = getScheduleByPostcode(tempAddress.postcode);
+    if (schedule) {
+      Alert.alert(
+        'Adresse gespeichert',
+        `Abfallplan für ${schedule.city} wurde geladen.`
+      );
+    } else {
+      Alert.alert(
+        'Adresse gespeichert',
+        'Standard-Abfallplan wird verwendet, da für diese Postleitzahl kein spezifischer Plan verfügbar ist.'
+      );
+    }
   };
 
   const handleCancelEdit = () => {
-    setTempAddress(address);
+    setTempAddress(userAddress);
     setIsEditing(false);
   };
 
@@ -193,10 +209,13 @@ export default function ProfileScreen() {
               ) : (
                 <>
                   <Text style={styles.addressText}>
-                    {address.street} {address.houseNumber}
+                    {userAddress.street} {userAddress.houseNumber}
                   </Text>
                   <Text style={styles.addressSubtext}>
-                    {address.postcode} {address.city}
+                    {userAddress.postcode} {userAddress.city}
+                  </Text>
+                  <Text style={styles.scheduleInfo}>
+                    Abfallplan: {currentSchedule.city}
                   </Text>
                 </>
               )}
@@ -423,6 +442,12 @@ const styles = StyleSheet.create({
   addressSubtext: {
     fontSize: 14,
     color: '#666',
+  },
+  scheduleInfo: {
+    fontSize: 12,
+    color: '#228B22',
+    marginTop: 4,
+    fontWeight: '500',
   },
   inputRow: {
     flexDirection: 'row',
