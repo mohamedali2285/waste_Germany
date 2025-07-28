@@ -41,6 +41,9 @@ export default function LanguageSelector({
     onSelect(languageCode);
   };
 
+  // Map current language code to its native name for the title
+  const currentLanguageName = languages.find(lang => lang.code === currentLanguage)?.nativeName || 'Sprache auswählen';
+
   return (
     <Modal
       visible={visible}
@@ -50,7 +53,7 @@ export default function LanguageSelector({
     >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Sprache auswählen</Text>
+          <Text style={styles.title}>{currentLanguageName}</Text>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <X size={24} color="#666" />
           </TouchableOpacity>

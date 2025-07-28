@@ -37,7 +37,10 @@ export const storage = {
 
   async saveSettings(settings: Partial<StoredSettings>): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+      // Merge existing settings with new ones to avoid overwriting other properties
+      const existingSettings = await storage.getSettings();
+      const updatedSettings = { ...existingSettings, ...settings };
+      await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updatedSettings));
     } catch (error) {
       console.error('Error saving settings:', error);
     }

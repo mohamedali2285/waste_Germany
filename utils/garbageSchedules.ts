@@ -73,27 +73,27 @@ export const garbageSchedules: { [key: string]: LocationSchedule } = {
       altglas: { available: true, color: '#90EE90' }
     }
   },
-  // Nattheim
+  // Fleinheim / Nattheim
   '89564': {
-    city: 'Nattheim',
+    city: 'Fleinheim / Nattheim',
     postcode: '89564',
     wasteTypes: {
-      restmuell: { dayOfWeek: 3, weeks: [1, 3], color: '#2F4F4F' }, // Wednesday, every 2 weeks
-      biomuell: { dayOfWeek: 1, weeks: [1, 2, 3, 4], color: '#8FBC8F' }, // Monday, weekly
-      papier: { dayOfWeek: 5, weeks: [2, 4], color: '#4169E1' }, // Friday, every 2 weeks
-      gelberSack: { dayOfWeek: 2, weeks: [1, 3], color: '#FFD700' }, // Tuesday, every 2 weeks
+      restmuell: { dayOfWeek: 4, weeks: [2, 4], color: '#2F4F4F' }, // Thursday, every 2 weeks (from website)
+      biomuell: { dayOfWeek: 4, weeks: [1, 2, 3, 4], color: '#8FBC8F' }, // Thursday, weekly (from website)
+      papier: { dayOfWeek: 3, weeks: [1, 3], color: '#4169E1' }, // Wednesday, every 2 weeks (from website)
+      gelberSack: { dayOfWeek: 3, weeks: [2, 4], color: '#FFD700' }, // Wednesday, every 2 weeks (from website)
       altglas: { available: true, color: '#90EE90' }
     }
   },
-  // Fleinheim
+  // Herbrechtingen (New entry with placeholder schedule)
   '89542': {
-    city: 'Fleinheim',
+    city: 'Herbrechtingen',
     postcode: '89542',
     wasteTypes: {
-      restmuell: { dayOfWeek: 4, weeks: [2, 4], color: '#2F4F4F' }, // Thursday, every 2 weeks
-      biomuell: { dayOfWeek: 1, weeks: [1, 2, 3, 4], color: '#8FBC8F' }, // Monday, weekly
-      papier: { dayOfWeek: 3, weeks: [1, 3], color: '#4169E1' }, // Wednesday, every 2 weeks
-      gelberSack: { dayOfWeek: 5, weeks: [2, 4], color: '#FFD700' }, // Friday, every 2 weeks
+      restmuell: { dayOfWeek: 2, weeks: [1, 3], color: '#2F4F4F' }, // Tuesday, every 2 weeks (placeholder)
+      biomuell: { dayOfWeek: 4, weeks: [1, 2, 3, 4], color: '#8FBC8F' }, // Thursday, weekly (placeholder)
+      papier: { dayOfWeek: 1, weeks: [2, 4], color: '#4169E1' }, // Monday, every 2 weeks (placeholder)
+      gelberSack: { dayOfWeek: 3, weeks: [1, 3], color: '#FFD700' }, // Wednesday, every 2 weeks (placeholder)
       altglas: { available: true, color: '#90EE90' }
     }
   },

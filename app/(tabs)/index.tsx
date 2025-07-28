@@ -184,7 +184,6 @@ export default function CalendarScreen() {
             <TouchableOpacity onPress={handleLocationRequest}>
               <Text style={styles.subtitle}>
                 {userAddress.city}, {userAddress.postcode}
-                {!hasPermission && ' (Tippen für Standort)'}
               </Text>
             </TouchableOpacity>
           </View>
