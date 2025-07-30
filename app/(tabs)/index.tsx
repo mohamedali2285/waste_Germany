@@ -29,6 +29,8 @@ export default function CalendarScreen() {
   const { location, requestLocation, hasPermission } = useLocation();
 
   const [visibleMonthIndex, setVisibleMonthIndex] = useState(currentMonth);
+  const [selectedDayWasteTypes, setSelectedDayWasteTypes] = useState<string | null>(null);
+  const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null); // To track which day is selected
 
   // Effect to reset visibleMonthIndex when userAddress.postcode changes
   useEffect(() => {
@@ -113,7 +115,8 @@ export default function CalendarScreen() {
     const typeMap: { [key: string]: keyof typeof notifications } = {
       'Restmüll': 'restmuell',
       'Biomüll': 'biomuell',
-      'Papier': 'papier',
+      'Papiertonne': 'papiertonne',
+      'Altpapier': 'altpapier',
       'Gelber Sack': 'gelberSack',
       'Altglas': 'altglas',
     };
@@ -134,33 +137,6 @@ export default function CalendarScreen() {
     }
   };
 
-  const getCalendarDayStyle = (day: number, month: number) => {
-    const wasteInfo = yearCalendarData[month]?.[day];
-    const isCurrentDay = day === currentDay && month === currentMonth && currentYear === new Date().getFullYear();
-
-    if (isCurrentDay) {
-      return styles.currentDay;
-    } else if (wasteInfo && wasteInfo.length > 0) {
-      // If multiple collections on one day, use the first color or a mixed color
-      const firstColor = wasteInfo[0].color;
-      return [styles.collectionDay, { backgroundColor: firstColor + '40', borderColor: firstColor }];
-    }
-    return styles.calendarDay;
-  };
-
-  const getCalendarDayTextStyle = (day: number, month: number) => {
-    const wasteInfo = yearCalendarData[month]?.[day];
-    const isCurrentDay = day === currentDay && month === currentMonth && currentYear === new Date().getFullYear();
-
-    if (isCurrentDay) {
-      return styles.currentDayText;
-    } else if (wasteInfo && wasteInfo.length > 0) {
-      const firstColor = wasteInfo[0].color;
-      return [styles.collectionDayText, { color: firstColor }];
-    }
-    return styles.calendarDayText;
-  };
-
   const getMonthName = (monthIndex: number) => {
     const date = new Date(currentYear, monthIndex, 1);
     return date.toLocaleDateString('de-DE', { month: 'long' });
@@ -168,10 +144,31 @@ export default function CalendarScreen() {
 
   const handlePreviousMonth = () => {
     setVisibleMonthIndex((prevIndex) => (prevIndex === 0 ? 11 : prevIndex - 1));
+    setSelectedDayWasteTypes(null); // Clear selection when changing month
+    setSelectedDayKey(null);
   };
 
   const handleNextMonth = () => {
     setVisibleMonthIndex((prevIndex) => (prevIndex === 11 ? 0 : prevIndex + 1));
+    setSelectedDayWasteTypes(null); // Clear selection when changing month
+    setSelectedDayKey(null);
+  };
+
+  const handleDayPress = (day: number, month: number, wasteInfo: any[] | undefined) => {
+    const dayKey = `${month}-${day}`;
+    if (selectedDayKey === dayKey) {
+      // If the same day is pressed again, deselect it
+      setSelectedDayWasteTypes(null);
+      setSelectedDayKey(null);
+    } else {
+      if (wasteInfo && wasteInfo.length > 0) {
+        const types = wasteInfo.map(info => info.type).join(', ');
+        setSelectedDayWasteTypes(`Abholung: ${types}`);
+      } else {
+        setSelectedDayWasteTypes('Keine Abholung an diesem Tag.');
+      }
+      setSelectedDayKey(dayKey);
+    }
   };
 
   return (
@@ -213,7 +210,8 @@ export default function CalendarScreen() {
             const typeMap: { [key: string]: keyof typeof notifications } = {
               'Restmüll': 'restmuell',
               'Biomüll': 'biomuell',
-              'Papier': 'papier',
+              'Papiertonne': 'papiertonne',
+              'Altpapier': 'altpapier',
               'Gelber Sack': 'gelberSack',
               'Altglas': 'altglas',
             };
@@ -257,18 +255,50 @@ export default function CalendarScreen() {
             </TouchableOpacity>
           </View>
 
+          {selectedDayWasteTypes && (
+            <View style={styles.selectedDayInfoContainer}>
+              <Text style={styles.selectedDayInfoText}>{selectedDayWasteTypes}</Text>
+            </View>
+          )}
+
           <View style={styles.monthContainer}>
             <View style={styles.calendarGrid}>
-              {Array.from({ length: new Date(currentYear, visibleMonthIndex + 1, 0).getDate() }, (_, i) => i + 1).map((day) => (
-                <TouchableOpacity
-                  key={day}
-                  style={getCalendarDayStyle(day, visibleMonthIndex)}
-                >
-                  <Text style={getCalendarDayTextStyle(day, visibleMonthIndex)}>
-                    {day}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {Array.from({ length: new Date(currentYear, visibleMonthIndex + 1, 0).getDate() }, (_, i) => i + 1).map((day) => {
+                const wasteInfo = yearCalendarData[visibleMonthIndex]?.[day];
+                const isCurrentDay = day === currentDay && visibleMonthIndex === currentMonth && currentYear === new Date().getFullYear();
+                const dayKey = `${visibleMonthIndex}-${day}`;
+                const isSelected = selectedDayKey === dayKey;
+
+                return (
+                  <TouchableOpacity
+                    key={day}
+                    style={[
+                      styles.calendarDay,
+                      isCurrentDay && styles.currentDay,
+                      isSelected && styles.selectedDay, // Apply selected style
+                    ]}
+                    onPress={() => handleDayPress(day, visibleMonthIndex, wasteInfo)}
+                  >
+                    <Text style={[
+                      styles.calendarDayText,
+                      isCurrentDay && styles.currentDayText,
+                      isSelected && styles.selectedDayText, // Apply selected text style
+                    ]}>
+                      {day}
+                    </Text>
+                    {wasteInfo && wasteInfo.length > 0 && (
+                      <View style={styles.collectionDotsContainer}>
+                        {wasteInfo.map((info, idx) => (
+                          <View
+                            key={idx}
+                            style={[styles.collectionDot, { backgroundColor: info.color }]}
+                          />
+                        ))}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         </View>
@@ -465,12 +495,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 8,
     backgroundColor: '#f0f0f0',
+    paddingVertical: 5, // Add padding to make space for dots
   },
   currentDay: {
     backgroundColor: '#228B22',
-  },
-  collectionDay: {
-    borderWidth: 2,
   },
   calendarDayText: {
     fontSize: 14,
@@ -480,7 +508,43 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  collectionDayText: {
+  collectionDotsContainer: {
+    flexDirection: 'row',
+    marginTop: 4,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  collectionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginHorizontal: 1,
+    marginBottom: 2,
+  },
+  selectedDay: {
+    backgroundColor: '#e0ffe0', // Light green background for selected day
+    borderWidth: 1,
+    borderColor: '#228B22',
+  },
+  selectedDayText: {
+    color: '#228B22',
     fontWeight: 'bold',
+  },
+  selectedDayInfoContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  selectedDayInfoText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
   },
 });

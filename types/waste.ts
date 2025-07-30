@@ -42,7 +42,8 @@ export interface UserAddress {
 export interface NotificationPreferences {
   restmuell: boolean;
   biomuell: boolean;
-  papier: boolean;
+  papiertonne: boolean;
+  altpapier: boolean;
   gelberSack: boolean;
   altglas: boolean;
 }

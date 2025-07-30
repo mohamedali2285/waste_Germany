@@ -23,7 +23,8 @@ export function useWasteSchedule() {
   const [notifications, setNotifications] = useState({
     restmuell: true,
     biomuell: true,
-    papier: true,
+    papiertonne: true,
+    altpapier: true,
     gelberSack: true,
     altglas: true,
   });
@@ -48,7 +49,8 @@ export function useWasteSchedule() {
   const loadNotifications = async () => {
     const saved = await storage.getNotifications();
     if (saved) {
-      setNotifications(saved);
+      // Merge saved notifications with default to ensure new types are included
+      setNotifications(prev => ({ ...prev, ...saved }));
     }
   };
 
@@ -111,20 +113,36 @@ export function useWasteSchedule() {
       actualDate: biomuellDate,
     });
 
-    // Papier
-    const papierDate = getNextCollectionDate('papier', currentSchedule, currentDate);
+    // Papiertonne
+    const papiertonneDate = getNextCollectionDate('papiertonne', currentSchedule, currentDate);
     collections.push({
-      id: 'papier',
-      name: 'Papier',
-      color: currentSchedule.wasteTypes.papier.color,
-      nextDate: papierDate.toLocaleDateString('de-DE', { 
+      id: 'papiertonne',
+      name: 'Papiertonne',
+      color: currentSchedule.wasteTypes.papiertonne.color,
+      nextDate: papiertonneDate.toLocaleDateString('de-DE', { 
         weekday: 'short', 
         day: '2-digit', 
         month: 'short' 
       }),
-      dayOfMonth: papierDate.getDate(),
-      enabled: notifications.papier,
-      actualDate: papierDate,
+      dayOfMonth: papiertonneDate.getDate(),
+      enabled: notifications.papiertonne,
+      actualDate: papiertonneDate,
+    });
+
+    // Altpapier
+    const altpapierDate = getNextCollectionDate('altpapier', currentSchedule, currentDate);
+    collections.push({
+      id: 'altpapier',
+      name: 'Altpapier',
+      color: currentSchedule.wasteTypes.altpapier.color,
+      nextDate: altpapierDate.toLocaleDateString('de-DE', { 
+        weekday: 'short', 
+        day: '2-digit', 
+        month: 'short' 
+      }),
+      dayOfMonth: altpapierDate.getDate(),
+      enabled: notifications.altpapier,
+      actualDate: altpapierDate,
     });
 
     // Gelber Sack
@@ -183,7 +201,7 @@ export function useWasteSchedule() {
   // Calendar data for the whole year
   const yearCalendarData = useMemo(() => {
     const data: { [month: number]: { [day: number]: CalendarDayInfo[] } } = {};
-    const wasteTypeKeys: Array<'restmuell' | 'biomuell' | 'papier' | 'gelberSack'> = ['restmuell', 'biomuell', 'papier', 'gelberSack'];
+    const wasteTypeKeys: Array<'restmuell' | 'biomuell' | 'papiertonne' | 'altpapier' | 'gelberSack'> = ['restmuell', 'biomuell', 'papiertonne', 'altpapier', 'gelberSack'];
 
     wasteTypeKeys.forEach(typeKey => {
       if (notifications[typeKey]) { // Only include if notifications are enabled for this type
