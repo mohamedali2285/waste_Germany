@@ -43,7 +43,7 @@ const WasteScheduleFetcher = () => {
     try {
       // استخدام localhost للاختبار المحلي
       // للاختبار على جهاز حقيقي، استبدل localhost بعنوان IP الخاص بجهازك
-      const backendUrl = 'http://localhost:3000/api/waste-schedule';
+      const backendUrl = 'http://10.0.0.25:3000/api/waste-schedule';
 
       const params = new URLSearchParams({
         street: encodeURIComponent(streetName),

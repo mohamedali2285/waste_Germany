@@ -9,8 +9,9 @@ import {
   SafeAreaView,
   Switch,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { MapPin, Clock, ChevronRight, Globe, Settings, CircleHelp as HelpCircle, CreditCard as Edit3, Save, Locate } from 'lucide-react-native';
+import { MapPin, Clock, ChevronRight, Globe, Settings, CircleHelp as HelpCircle, CreditCard as Edit3, Save, Locate, Wifi, WifiOff } from 'lucide-react-native';
 import { useCurrentDate } from '@/hooks/useCurrentDate';
 import { useWasteSchedule } from '@/hooks/useWasteSchedule';
 import { useLocation } from '@/hooks/useLocation';
@@ -25,6 +26,8 @@ export default function ProfileScreen() {
   const [showTimeSelector, setShowTimeSelector] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('de');
   const [notificationTime, setNotificationTime] = useState('18:00');
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [connectionMessage, setConnectionMessage] = useState('');
   
   const { currentDate } = useCurrentDate();
   const { 
@@ -32,7 +35,8 @@ export default function ProfileScreen() {
     setNotifications, 
     userAddress, 
     updateAddressAndSchedule,
-    currentSchedule 
+    currentSchedule,
+    testServerConnection 
   } = useWasteSchedule();
   const { location, requestLocation, hasPermission } = useLocation();
   
@@ -45,6 +49,9 @@ export default function ProfileScreen() {
   const handleSaveAddress = async () => {
     await updateAddressAndSchedule(tempAddress);
     setIsEditing(false);
+    
+    // Test server connection after saving address
+    await testConnection();
     
     // Check if we have a schedule for this postcode
     const schedule = getScheduleByPostcode(tempAddress.postcode);
@@ -59,6 +66,31 @@ export default function ProfileScreen() {
         'Standard-Abfallplan wird verwendet, da für diese Postleitzahl kein spezifischer Plan verfügbar ist.'
       );
     }
+  };
+
+  const testConnection = async () => {
+    setConnectionStatus('testing');
+    setConnectionMessage('Verbindung wird getestet...');
+    
+    try {
+      const result = await testServerConnection(tempAddress.street || userAddress.street);
+      if (result.success) {
+        setConnectionStatus('success');
+        setConnectionMessage(`Verbindung erfolgreich! Server antwortet.`);
+      } else {
+        setConnectionStatus('error');
+        setConnectionMessage(`Verbindungsfehler: ${result.error}`);
+      }
+    } catch (error) {
+      setConnectionStatus('error');
+      setConnectionMessage(`Verbindungsfehler: ${error}`);
+    }
+    
+    // Clear status after 5 seconds
+    setTimeout(() => {
+      setConnectionStatus('idle');
+      setConnectionMessage('');
+    }, 5000);
   };
 
   const handleCancelEdit = () => {
@@ -205,6 +237,38 @@ export default function ProfileScreen() {
                     <Locate size={16} color="#228B22" />
                     <Text style={styles.locationButtonText}>Aktuellen Standort verwenden</Text>
                   </TouchableOpacity>
+                  <TouchableOpacity style={styles.testButton} onPress={testConnection}>
+                    {connectionStatus === 'testing' ? (
+                      <ActivityIndicator size={16} color="#228B22" />
+                    ) : connectionStatus === 'success' ? (
+                      <Wifi size={16} color="#228B22" />
+                    ) : connectionStatus === 'error' ? (
+                      <WifiOff size={16} color="#f44336" />
+                    ) : (
+                      <Wifi size={16} color="#228B22" />
+                    )}
+                    <Text style={[
+                      styles.testButtonText,
+                      connectionStatus === 'error' && { color: '#f44336' }
+                    ]}>
+                      Server-Verbindung testen
+                    </Text>
+                  </TouchableOpacity>
+                  {connectionMessage ? (
+                    <View style={[
+                      styles.connectionMessage,
+                      connectionStatus === 'success' && styles.successMessage,
+                      connectionStatus === 'error' && styles.errorMessage
+                    ]}>
+                      <Text style={[
+                        styles.connectionMessageText,
+                        connectionStatus === 'success' && styles.successMessageText,
+                        connectionStatus === 'error' && styles.errorMessageText
+                      ]}>
+                        {connectionMessage}
+                      </Text>
+                    </View>
+                  )}
                 </>
               ) : (
                 <>
@@ -507,6 +571,52 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#228B22',
     marginLeft: 8,
+  },
+  testButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f8f0',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#228B22',
+  },
+  testButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#228B22',
+    marginLeft: 8,
+  },
+  connectionMessage: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  successMessage: {
+    backgroundColor: '#e8f5e8',
+    borderColor: '#228B22',
+    borderWidth: 1,
+  },
+  errorMessage: {
+    backgroundColor: '#ffebee',
+    borderColor: '#f44336',
+    borderWidth: 1,
+  },
+  connectionMessageText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  successMessageText: {
+    color: '#2d5a2d',
+  },
+  errorMessageText: {
+    color: '#721c24',
   },
   notificationsList: {
     borderRadius: 12,

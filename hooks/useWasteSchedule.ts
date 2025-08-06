@@ -77,6 +77,39 @@ export function useWasteSchedule() {
     updateScheduleForLocation(newAddress.postcode);
   };
 
+  const testServerConnection = async (streetName: string) => {
+    try {
+      const backendUrl = 'http://10.0.0.25:3000/api/waste-schedule';
+      const params = new URLSearchParams({
+        street: encodeURIComponent(streetName || 'Teststraße'),
+        city: encodeURIComponent('Heidenheim'),
+        district: encodeURIComponent('Heidenheim'),
+        year: '2025',
+      }).toString();
+
+      const fullApiUrl = `${backendUrl}?${params}`;
+      console.log('Testing connection to:', fullApiUrl);
+
+      const response = await fetch(fullApiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Add timeout
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error: any) {
+      console.error('Server connection test failed:', error);
+      return { success: false, error: error.message };
+    }
+  };
   // Generate waste collections based on current schedule
   const generateWasteCollections = (): WasteCollection[] => {
     const collections: WasteCollection[] = [];
@@ -235,5 +268,6 @@ export function useWasteSchedule() {
     currentSchedule,
     userAddress,
     updateAddressAndSchedule,
+    testServerConnection,
   };
 }
