@@ -6,14 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Alert,
 } from 'react-native';
-import { Bell, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Bell, ChevronLeft, ChevronRight, Calendar } from 'lucide-react-native';
 import { useCurrentDate } from '@/hooks/useCurrentDate';
 import { useWasteSchedule } from '@/hooks/useWasteSchedule';
-import { useLocation } from '@/hooks/useLocation';
 import { storage } from '@/utils/storage';
-import { getScheduleByPostcode } from '@/utils/garbageSchedules';
 
 export default function CalendarScreen() {
   const { currentDate, currentDay, currentMonth, currentYear, dayName } = useCurrentDate();
@@ -24,89 +21,22 @@ export default function CalendarScreen() {
     notifications, 
     setNotifications,
     userAddress,
-    updateAddressAndSchedule 
+    updateAddressAndSchedule,
+    testServerConnection 
   } = useWasteSchedule();
-  const { location, requestLocation, hasPermission } = useLocation();
 
   const [visibleMonthIndex, setVisibleMonthIndex] = useState(currentMonth);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
   // Effect to reset visibleMonthIndex when userAddress.postcode changes
   useEffect(() => {
     setVisibleMonthIndex(currentMonth);
   }, [userAddress.postcode, currentMonth]);
 
-  const handleLocationRequest = async () => {
-    if (!hasPermission) {
-      Alert.alert(
-        'Standortberechtigung',
-        'Diese App benötigt Standortzugriff, um nahegelegene Einrichtungen anzuzeigen und genaue Abholpläne bereitzustellen.',
-        [
-          { text: 'Abbrechen', style: 'cancel' },
-          { text: 'Zulassen', onPress: requestLocation },
-        ]
-      );
-    } else {
-      await requestLocation();
-      
-      // Update address and schedule based on location
-      if (location?.address) {
-        const parts = location.address.split(',');
-        if (parts.length >= 2) {
-          const streetPart = parts[0].trim();
-          const cityPart = parts[1].trim();
-          const postcodeMatch = cityPart.match(/^\d{5}/);
-          
-          if (postcodeMatch) {
-            const newAddress = {
-              street: streetPart.replace(/\d+$/, '').trim(),
-              houseNumber: streetPart.match(/\d+$/) ? streetPart.match(/\d+$/)![0] : '',
-              postcode: postcodeMatch[0],
-              city: cityPart.replace(/^\d{5}\s*/, ''),
-            };
-            
-            // Check if we have a schedule for this postcode
-            const schedule = getScheduleByPostcode(newAddress.postcode);
-            if (schedule) {
-              await updateAddressAndSchedule(newAddress);
-              Alert.alert(
-                'Standort aktualisiert',
-                `Abfallplan für ${schedule.city} wurde geladen.`
-              );
-            } else {
-              Alert.alert(
-                'Standort nicht gefunden',
-                `Für die Postleitzahl ${newAddress.postcode} wurde kein Abfallplan gefunden. Es wird der Standardplan verwendet.`
-              );
-            }
-          } else {
-            Alert.alert(
-              'Postleitzahl nicht erkannt',
-              'Die Postleitzahl konnte aus Ihrem Standort nicht extrahiert werden.'
-            );
-          }
-        } else {
-          Alert.alert(
-            'Standortdetails unvollständig',
-            'Die Standortinformationen sind nicht detailliert genug, um eine Adresse zu bestimmen.'
-          );
-        }
-      } else {
-        Alert.alert(
-          'Standort nicht verfügbar',
-          'Ihr Standort konnte nicht abgerufen werden. Bitte versuchen Sie es erneut.'
-        );
-      }
-    }
-  };
-
   const handleBellPress = async () => {
-    Alert.alert(
-      'Erinnerungen verwalten',
-      'Gehen Sie zu Ihrem Profil, um Erinnerungen für verschiedene Müllarten zu aktivieren oder zu deaktivieren.',
-      [
-        { text: 'OK', style: 'default' },
-      ]
-    );
+    // Navigate to profile or show notification settings
+    console.log('Bell pressed - navigate to profile');
   };
 
   const handleReminderPress = async (wasteType: string) => {
@@ -127,11 +57,17 @@ export default function CalendarScreen() {
       };
       setNotifications(newNotifications);
       await storage.saveNotifications(newNotifications);
-      
-      Alert.alert(
-        'Erinnerung aktualisiert',
-        `${wasteType} Erinnerungen ${newNotifications[notificationKey] ? 'aktiviert' : 'deaktiviert'}`
-      );
+    }
+  };
+
+  const handleDayPress = (day: number, monthIndex: number) => {
+    if (selectedDay === day && selectedMonth === monthIndex) {
+      // Deselect if same day is pressed
+      setSelectedDay(null);
+      setSelectedMonth(null);
+    } else {
+      setSelectedDay(day);
+      setSelectedMonth(monthIndex);
     }
   };
 
@@ -155,11 +91,9 @@ export default function CalendarScreen() {
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <Text style={styles.title}>AbfallWise Deutschland</Text>
-            <TouchableOpacity onPress={handleLocationRequest}>
-              <Text style={styles.subtitle}>
-                {userAddress.city}, {userAddress.postcode}
-              </Text>
-            </TouchableOpacity>
+            <Text style={styles.subtitle}>
+              {userAddress.city}, {userAddress.postcode}
+            </Text>
           </View>
           <TouchableOpacity style={styles.notificationButton} onPress={handleBellPress}>
             <Bell size={24} color="#228B22" />
@@ -237,18 +171,22 @@ export default function CalendarScreen() {
               {Array.from({ length: new Date(currentYear, visibleMonthIndex + 1, 0).getDate() }, (_, i) => i + 1).map((day) => {
                 const wasteInfo = yearCalendarData[visibleMonthIndex]?.[day];
                 const isCurrentDay = day === currentDay && visibleMonthIndex === currentMonth && currentYear === new Date().getFullYear();
+                const isSelected = selectedDay === day && selectedMonth === visibleMonthIndex;
 
                 return (
                   <TouchableOpacity
                     key={day}
                     style={[
-                      styles.calendarDay, // Fixed: Changed from styles.calendar Day to styles.calendarDay
+                      styles.calendarDay,
                       isCurrentDay && styles.currentDay,
+                      isSelected && styles.selectedDay,
                     ]}
+                    onPress={() => handleDayPress(day, visibleMonthIndex)}
                   >
                     <Text style={[
                       styles.calendarDayText,
                       isCurrentDay && styles.currentDayText,
+                      isSelected && styles.selectedDayText,
                     ]}>
                       {day}
                     </Text>
@@ -267,6 +205,31 @@ export default function CalendarScreen() {
               })}
             </View>
           </View>
+
+          {/* Selected Day Info */}
+          {selectedDay && selectedMonth !== null && (
+            <View style={styles.selectedDayInfo}>
+              <View style={styles.selectedDayHeader}>
+                <Calendar size={20} color="#228B22" />
+                <Text style={styles.selectedDayTitle}>
+                  {selectedDay}. {getMonthName(selectedMonth)} {currentYear}
+                </Text>
+              </View>
+              {yearCalendarData[selectedMonth]?.[selectedDay] ? (
+                <View style={styles.wasteInfoContainer}>
+                  <Text style={styles.wasteInfoTitle}>Müllabholung an diesem Tag:</Text>
+                  {yearCalendarData[selectedMonth][selectedDay].map((waste, index) => (
+                    <View key={index} style={styles.wasteInfoItem}>
+                      <View style={[styles.wasteInfoDot, { backgroundColor: waste.color }]} />
+                      <Text style={styles.wasteInfoText}>{waste.type}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.noWasteText}>Keine Müllabholung an diesem Tag</Text>
+              )}
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -466,11 +429,20 @@ const styles = StyleSheet.create({
   currentDay: {
     backgroundColor: '#228B22',
   },
+  selectedDay: {
+    backgroundColor: '#4CAF50',
+    borderWidth: 2,
+    borderColor: '#228B22',
+  },
   calendarDayText: {
     fontSize: 14,
     color: '#333',
   },
   currentDayText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  selectedDayText: {
     color: '#fff',
     fontWeight: 'bold',
   },
@@ -486,5 +458,58 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     marginHorizontal: 1,
     marginBottom: 2,
+  },
+  selectedDayInfo: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  selectedDayHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  selectedDayTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginLeft: 8,
+  },
+  wasteInfoContainer: {
+    marginTop: 8,
+  },
+  wasteInfoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  wasteInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  wasteInfoDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  wasteInfoText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  noWasteText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 8,
   },
 });
