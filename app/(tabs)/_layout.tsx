@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Calendar, BookOpen, MapPin, User } from 'lucide-react-native';
+import { Calendar, BookOpen, MapPin, User, Search } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -28,6 +28,15 @@ export default function TabLayout() {
           title: 'Calendar',
           tabBarIcon: ({ size, color }) => (
             <Calendar size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="schedule"
+        options={{
+          title: 'Schedule',
+          tabBarIcon: ({ size, color }) => (
+            <Search size={size} color={color} />
           ),
         }}
       />
